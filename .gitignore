@@ -1,0 +1,8 @@
+isodir/
+boot.img
+boot.o
+kernel.elf
+kernel.o
+myos.iso
+other
+.DS_Store
