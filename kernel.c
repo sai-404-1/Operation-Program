@@ -1,60 +1,43 @@
 #include <stdint.h>
-
-#define VGA_WIDTH  80
-#define VGA_HEIGHT 25
-
-static volatile uint16_t* const VGA = (uint16_t*)0xB8000;
-
-extern void irq0_stub(void);
-extern void default_interrupt_stub(void);
-
-static inline void enable_interrupts(void) {
-    __asm__ volatile ("sti");
-}
-
-static inline void disable_interrupts(void) {
-    __asm__ volatile ("cli");
-}
-
-static inline void halt_cpu(void) {
-    __asm__ volatile ("hlt");
-}
-
-static void put_at(int x, int y, char c, uint8_t color) {
-    if (x < 0 || x >= VGA_WIDTH || y < 0 || y >= VGA_HEIGHT) {
-        return;
-    }
-
-    VGA[y * VGA_WIDTH + x] = ((uint16_t)color << 8) | (uint8_t)c;
-}
-
-static void clear_screen(void) {
-    for (int y = 0; y < VGA_HEIGHT; y++) {
-        for (int x = 0; x < VGA_WIDTH; x++) {
-            put_at(x, y, '[', 0x07);
-        }
-    }
-}
-
-static void print_at(int x, int y, const char* text, uint8_t color) {
-    while (*text) {
-        put_at(x++, y, *text++, color);
-    }
-}
+#include "screen.h"
+#include "cpu.h"
 
 static void draw_menu() {
-    clear_screen();
+    clear_screen_color(0x00);
     uint_fast8_t start_x = VGA_WIDTH/2-6;
-    print_at(start_x, 1, "----------", 0x0A);
-    print_at(start_x, 2, "|TRASH-OS|", 0x0A);
-    print_at(start_x, 3, "----------", 0x0A);
+    print_at(start_x, 1, "--------------", 0x0A);
+    print_at(start_x, 2, "|  TRASH-OS  |", 0x0A);
+    print_at(start_x, 3, "--------------", 0x0A);
+    print_at(start_x, 4, "Enter any key.", 0x0A);
 }
 
 void kernel_main(void) {
+    draw_menu();
+    int keyboard_scan = inb(0x60);
     while (1) {
-        draw_menu();
-        for (int i = 0; i < VGA_WIDTH; ++i) {
-            print_at(i, VGA_HEIGHT/2-1, "-", 0x0A);
+        char symbols[] = {'-', '/', '\\'};
+        char ASCII_NUMBERS = 48;
+        char idk[16];
+        for (int i = 0; i < 10; i++){
+            idk[0x0000010+i] = (char)(uintptr_t)i;
+        }
+        
+        while (keyboard_scan == inb(0x60)) {;}
+        clear_screen();
+
+        for (int i = 0; i <= 20; i++) {
+            for (int j = 0; j <= 20; j++) {
+                print_at(VGA_WIDTH-j, i+1, " ", 0x0A+(i*15)+(j));
+            }
+        }
+        int step = {0};
+        int max_width = 20;
+        int max_height = 20;
+        for (int i = 0; i < max_height;){
+            for (int j = 0; j < max_width; j++) {
+                put_at(1+j, 1+i+step, (char)(uintptr_t)(idk[keyboard_scan]+48+j+1+(step*max_width)), 0x0A);
+            }
+            if (step+i < VGA_HEIGHT-5) step++;
         }
         halt_cpu();
     }
