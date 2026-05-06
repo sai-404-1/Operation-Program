@@ -1,8 +1,8 @@
 isodir/
-boot.img
-boot.o
-kernel.elf
-kernel.o
-myos.iso
+*.img
+*.o
+*.elf
+*.iso
 other
 .DS_Store
+.vscode
